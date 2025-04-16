@@ -34,6 +34,7 @@ body {
   background: linear-gradient(#41b503 30%, transparent);
   justify-content: center;
   align-items: center;
+  transform-origin: center center;
   transform: rotate(0deg);
   transition: transform 0.1s linear;
 }
