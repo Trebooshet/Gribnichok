@@ -7,7 +7,6 @@ const button = document.getElementById("targetButton");
 const arrow = document.getElementById("arrow");
 const distanceDisplay = document.getElementById("distanceDisplay");
 
-// Изначально скрываем стрелку и расстояние
 arrow.style.display = "none";
 distanceDisplay.style.display = "none";
 
@@ -19,14 +18,16 @@ button.addEventListener("click", () => {
                     latitude: pos.coords.latitude,
                     longitude: pos.coords.longitude
                 };
+                console.log("Цель установлена:", targetCoords);
+
                 button.style.display = "none";
                 arrow.style.display = "flex";
                 distanceDisplay.style.display = "block";
-                updateArrowRotation(); // Обновим сразу
             },
             error => {
                 console.error("Ошибка при установке цели:", error);
-            }
+            },
+            { enableHighAccuracy: true }
         );
     } else {
         alert("Геолокация не поддерживается");
@@ -87,11 +88,6 @@ function updateArrowRotation() {
         : `${distance} м`;
 }
 
-if (window.DeviceOrientationEvent) {
-    window.addEventListener("deviceorientationabsolute", handleOrientation);
-    window.addEventListener("deviceorientation", handleOrientation);
-}
-
 function handleOrientation(event) {
     let rawHeading;
 
@@ -107,14 +103,25 @@ function handleOrientation(event) {
     updateArrowRotation();
 }
 
+if (window.DeviceOrientationEvent) {
+    window.addEventListener("deviceorientationabsolute", handleOrientation);
+    window.addEventListener("deviceorientation", handleOrientation);
+}
+
 if (navigator.geolocation) {
     setInterval(() => {
-        navigator.geolocation.getCurrentPosition(pos => {
-            currentCoords = {
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude
-            };
-            updateArrowRotation();
-        });
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                currentCoords = {
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude
+                };
+                updateArrowRotation();
+            },
+            error => {
+                console.error("Ошибка при получении координат:", error);
+            },
+            { enableHighAccuracy: true }
+        );
     }, 2000);
 }
