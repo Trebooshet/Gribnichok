@@ -1,38 +1,34 @@
 let targetCoords = null;
 let currentCoords = null;
 let currentHeading = 0;
+let targetSet = false;  // Для отслеживания, была ли установлена цель
 
 const button = document.getElementById("targetButton");
 const arrow = document.getElementById("arrow");
 const distanceDisplay = document.getElementById("distanceDisplay");
 
-// Скрываем стрелку и расстояние до установки цели
-arrow.style.display = "none";
-distanceDisplay.style.display = "none";
-
 button.addEventListener("click", () => {
-    if (!navigator.geolocation) {
+    if (navigator.geolocation) {
+        console.log("Нажата кнопка. Запрашиваем текущую позицию как цель...");
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                targetCoords = {
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude
+                };
+                console.log("Цель установлена:", targetCoords);
+                button.style.display = "none";
+                distanceDisplay.style.display = "block"; // Показываем метки расстояния
+                targetSet = true;  // Цель установлена
+                updateArrowRotation(); // Сразу обновляем стрелку
+            },
+            error => {
+                console.error("Ошибка при установке цели:", error);
+            }
+        );
+    } else {
         alert("Геолокация не поддерживается");
-        return;
     }
-
-    navigator.geolocation.getCurrentPosition(
-        pos => {
-            targetCoords = {
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude
-            };
-            console.log("Цель установлена:", targetCoords);
-
-            button.style.display = "none";
-            arrow.style.display = "block";
-            distanceDisplay.style.display = "block";
-        },
-        error => {
-            console.error("Ошибка при установке цели:", error);
-        },
-        { enableHighAccuracy: true }
-    );
 });
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -40,8 +36,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     const toRad = deg => deg * Math.PI / 180;
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return Math.round(R * c);
 }
@@ -51,13 +46,15 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
     const toDeg = rad => rad * 180 / Math.PI;
     const dLon = toRad(lon2 - lon1);
     const y = Math.sin(dLon) * Math.cos(toRad(lat2));
-    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
-        Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
     return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
 function updateArrowRotation() {
-    if (!targetCoords || !currentCoords) return;
+    if (!targetCoords || !currentCoords || !targetSet) {
+        console.log("Нет координат для расчета.");
+        return;
+    }
 
     const bearing = calculateBearing(
         currentCoords.latitude,
@@ -66,8 +63,8 @@ function updateArrowRotation() {
         targetCoords.longitude
     );
 
-    const angle = (bearing - currentHeading + 360) % 360;
-    arrow.style.transform = `rotate(${angle}deg)`;
+    const angle = bearing - currentHeading;
+    arrow.style.transform = `rotate(${angle}deg)`;  // Поворот стрелки
 
     const distance = calculateDistance(
         currentCoords.latitude,
@@ -76,47 +73,31 @@ function updateArrowRotation() {
         targetCoords.longitude
     );
 
-    distanceDisplay.textContent = distance < 1
-        ? "Вы на месте!"
-        : `${distance} м`;
-}
-
-// Обработка компаса
-function handleOrientation(event) {
-    if (event.absolute === false && event.webkitCompassHeading === undefined) return;
-
-    if (event.webkitCompassHeading !== undefined) {
-        // iOS
-        currentHeading = event.webkitCompassHeading;
-    } else if (event.alpha !== null) {
-        // Android: alpha = вращение устройства по оси Z
-        currentHeading = 360 - event.alpha;
+    if (distance === 0) {
+        distanceDisplay.textContent = `Вы на месте!`;
+    } else {
+        distanceDisplay.textContent = `${distance} м`;
     }
-
-    updateArrowRotation();
 }
 
-// Подключаем обработчик ориентации
 if (window.DeviceOrientationEvent) {
-    window.addEventListener("deviceorientationabsolute", handleOrientation, true);
-    window.addEventListener("deviceorientation", handleOrientation, true);
+    window.addEventListener("deviceorientationabsolute", event => {
+        if (event.alpha !== null) {
+            currentHeading = event.alpha;  // Направление устройства
+            updateArrowRotation();
+        }
+    });
 }
 
-// Геолокация обновляется каждые 2 секунды
 if (navigator.geolocation) {
     setInterval(() => {
-        navigator.geolocation.getCurrentPosition(
-            pos => {
-                currentCoords = {
-                    latitude: pos.coords.latitude,
-                    longitude: pos.coords.longitude
-                };
-                updateArrowRotation();
-            },
-            error => {
-                console.error("Ошибка геолокации:", error);
-            },
-            { enableHighAccuracy: true }
-        );
+        navigator.geolocation.getCurrentPosition(pos => {
+            currentCoords = {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude
+            };
+            console.log("Обновленные координаты:", currentCoords);  // Лог обновления координат
+            updateArrowRotation();
+        });
     }, 2000);
 }
