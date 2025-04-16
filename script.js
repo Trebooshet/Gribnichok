@@ -69,7 +69,7 @@ function requestOrientationAccess() {
                 }
             })
             .catch(err => {
-                console.error("Ошибка доступа к ориентации:", err);
+                console.error("Ошибка при запросе разрешения:", err);
                 alert("Ошибка при запросе разрешения на доступ к компасу.");
             });
     } else {
@@ -112,6 +112,7 @@ button.addEventListener("click", () => {
         arrow.style.display = "flex";
         distanceDisplay.style.display = "block";
 
+        // Запрашиваем разрешение на доступ к компасу
         requestOrientationAccess();
         startTracking();
     }, err => {
