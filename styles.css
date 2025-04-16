@@ -30,8 +30,8 @@ body {
   height: 88vw;
   max-width: 30vh;
   max-height: 70vh;
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  background: #ffee8b;
+  clip-path: polygon(50% 0, 90% 50%, 65% 50%, 65% 100%, 35% 100%, 35% 50%, 10% 50%);
+  background: linear-gradient(#328e01 65%, transparent);
   justify-content: center;
   align-items: center;
   transform: rotate(0deg);
