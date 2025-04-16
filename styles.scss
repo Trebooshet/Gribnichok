@@ -29,11 +29,11 @@ body {
   max-width: 30vh;
   max-height: 70vh;
   clip-path: polygon(50% 0, 90% 50%, 65% 50%, 65% 100%, 35% 100%, 35% 50%, 10% 50%);
-  background:  linear-gradient(#328e01 65%, transparent);
+  background:  linear-gradient(#226700 35% , #41b503 65%, transparent);
   justify-content: center;
   align-items: center;
   transform: rotate(0deg);
-  transition: transform 0.3s ease;
+  transition: transform 0.1s linear;
 }
 #distanceDisplay {
   position: absolute;
@@ -41,6 +41,6 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 18px;
-  color: #007bff;
+  color: #b7d8f8;
   font-weight: bold;
 }

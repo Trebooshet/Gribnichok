@@ -53,7 +53,7 @@ function updateArrow() {
         targetCoords.longitude
     );
 
-    const rotation = bearing - currentHeading;
+    const rotation = (bearing - currentHeading + 360) % 360;
     arrow.style.transform = `rotate(${rotation}deg)`;
     distanceDisplay.textContent = `${distance} м`;
 }
