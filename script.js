@@ -6,11 +6,9 @@ const button = document.getElementById("targetButton");
 const arrow = document.getElementById("arrow");
 const distanceDisplay = document.getElementById("distanceDisplay");
 
-// Скрываем стрелку и расстояние до старта
 arrow.style.display = "none";
 distanceDisplay.style.display = "none";
 
-// Вспомогательные функции
 function toRadians(deg) {
     return deg * Math.PI / 180;
 }
@@ -65,45 +63,42 @@ function requestOrientationAccess() {
         DeviceOrientationEvent.requestPermission()
             .then(response => {
                 if (response === "granted") {
-                    window.addEventListener("deviceorientationabsolute", handleOrientation, true);
                     window.addEventListener("deviceorientation", handleOrientation, true);
                 } else {
-                    alert("Доступ к компасу не получен");
+                    alert("Доступ к компасу не разрешён.");
                 }
             })
             .catch(err => {
-                alert("Ошибка при запросе доступа к компасу");
-                console.error(err);
+                console.error("Ошибка доступа к ориентации:", err);
+                alert("Ошибка при запросе разрешения на доступ к компасу.");
             });
     } else {
-        window.addEventListener("deviceorientationabsolute", handleOrientation, true);
+        // Для Android и десктопа
         window.addEventListener("deviceorientation", handleOrientation, true);
     }
 }
 
 function handleOrientation(event) {
     if (event.webkitCompassHeading !== undefined) {
-        currentHeading = event.webkitCompassHeading; // Safari
-    } else if (event.absolute === true && event.alpha !== null) {
-        currentHeading = 360 - event.alpha; // fallback
+        currentHeading = event.webkitCompassHeading;
+    } else if (event.alpha !== null) {
+        currentHeading = 360 - event.alpha;
     }
     updateArrow();
 }
 
 function startTracking() {
-    navigator.geolocation.watchPosition(pos => {
-        currentCoords = {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude
-        };
-        updateArrow();
-    }, err => {
-        console.error("Геолокация не работает:", err);
-    }, {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 10000
-    });
+    setInterval(() => {
+        navigator.geolocation.getCurrentPosition(pos => {
+            currentCoords = {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude
+            };
+            updateArrow();
+        }, err => {
+            console.error("Ошибка геолокации:", err);
+        });
+    }, 10); // 0.01 секунды
 }
 
 button.addEventListener("click", () => {
