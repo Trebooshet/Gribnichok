@@ -1,37 +1,38 @@
 let targetCoords = null;
 let currentCoords = null;
 let currentHeading = 0;
-let headingHistory = [];
 
 const button = document.getElementById("targetButton");
 const arrow = document.getElementById("arrow");
 const distanceDisplay = document.getElementById("distanceDisplay");
 
+// Скрываем стрелку и расстояние до установки цели
 arrow.style.display = "none";
 distanceDisplay.style.display = "none";
 
 button.addEventListener("click", () => {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            pos => {
-                targetCoords = {
-                    latitude: pos.coords.latitude,
-                    longitude: pos.coords.longitude
-                };
-                console.log("Цель установлена:", targetCoords);
-
-                button.style.display = "none";
-                arrow.style.display = "flex";
-                distanceDisplay.style.display = "block";
-            },
-            error => {
-                console.error("Ошибка при установке цели:", error);
-            },
-            { enableHighAccuracy: true }
-        );
-    } else {
+    if (!navigator.geolocation) {
         alert("Геолокация не поддерживается");
+        return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            targetCoords = {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude
+            };
+            console.log("Цель установлена:", targetCoords);
+
+            button.style.display = "none";
+            arrow.style.display = "block";
+            distanceDisplay.style.display = "block";
+        },
+        error => {
+            console.error("Ошибка при установке цели:", error);
+        },
+        { enableHighAccuracy: true }
+    );
 });
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -55,12 +56,6 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
     return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
-function smoothHeading(newHeading) {
-    headingHistory.push(newHeading);
-    if (headingHistory.length > 5) headingHistory.shift();
-    return headingHistory.reduce((sum, h) => sum + h, 0) / headingHistory.length;
-}
-
 function updateArrowRotation() {
     if (!targetCoords || !currentCoords) return;
 
@@ -71,9 +66,7 @@ function updateArrowRotation() {
         targetCoords.longitude
     );
 
-    let angle = bearing - currentHeading;
-    if (angle < 0) angle += 360;
-
+    const angle = (bearing - currentHeading + 360) % 360;
     arrow.style.transform = `rotate(${angle}deg)`;
 
     const distance = calculateDistance(
@@ -88,26 +81,28 @@ function updateArrowRotation() {
         : `${distance} м`;
 }
 
+// Обработка компаса
 function handleOrientation(event) {
-    let rawHeading;
+    if (event.absolute === false && event.webkitCompassHeading === undefined) return;
 
     if (event.webkitCompassHeading !== undefined) {
-        rawHeading = event.webkitCompassHeading; // iOS
+        // iOS
+        currentHeading = event.webkitCompassHeading;
     } else if (event.alpha !== null) {
-        rawHeading = 360 - event.alpha; // Android
-    } else {
-        return;
+        // Android: alpha = вращение устройства по оси Z
+        currentHeading = 360 - event.alpha;
     }
 
-    currentHeading = smoothHeading(rawHeading);
     updateArrowRotation();
 }
 
+// Подключаем обработчик ориентации
 if (window.DeviceOrientationEvent) {
-    window.addEventListener("deviceorientationabsolute", handleOrientation);
-    window.addEventListener("deviceorientation", handleOrientation);
+    window.addEventListener("deviceorientationabsolute", handleOrientation, true);
+    window.addEventListener("deviceorientation", handleOrientation, true);
 }
 
+// Геолокация обновляется каждые 2 секунды
 if (navigator.geolocation) {
     setInterval(() => {
         navigator.geolocation.getCurrentPosition(
@@ -119,7 +114,7 @@ if (navigator.geolocation) {
                 updateArrowRotation();
             },
             error => {
-                console.error("Ошибка при получении координат:", error);
+                console.error("Ошибка геолокации:", error);
             },
             { enableHighAccuracy: true }
         );
