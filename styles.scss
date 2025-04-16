@@ -8,30 +8,40 @@ body {
   font-family: sans-serif;
 }
 #targetButton {
-  width: 150px;
-  height: 150px;
+  position: relative;
+  width: 90vw;
+  max-width: 90vh;
+  height: 90vw;
+  max-height: 90vh;
   border-radius: 50%;
-  background: #007bff;
+  background: transparent;
   color: #ffee8b;
   font-size: 16px;
-  border: none;
+  border: 2px solid #5196fa;
   cursor: pointer;
   transition: all 0.4s ease;
   z-index: 1;
 }
 #arrow {
   position: absolute;
-  width: 200px;
-  height: 200px;
-  border: 5px solid #007bff;
-  border-radius: 50%;
-  display: none;
+  width: 80vw;
+  height: 88vw;
+  max-width: 50vh;
+  max-height: 70vh;
+
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  background:  #ffee8b;
   justify-content: center;
   align-items: center;
   transform: rotate(0deg);
+
   transition: transform 0.3s ease;
 }
 #distanceDisplay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   font-size: 18px;
   color: #007bff;
   font-weight: bold;
