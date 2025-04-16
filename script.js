@@ -20,7 +20,7 @@ function toDegrees(rad) {
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
+    const R = 6371000; // радиус Земли в метрах
     const dLat = toRadians(lat2 - lat1);
     const dLon = toRadians(lon2 - lon1);
     const a = Math.sin(dLat / 2) ** 2 +
@@ -55,7 +55,7 @@ function updateArrow() {
         targetCoords.longitude
     );
 
-    // Учитываем текущую ориентацию устройства
+    // Поворот стрелки, учитывая ориентацию устройства
     const rotation = bearing - currentHeading;
     arrow.style.transform = `rotate(${rotation}deg)`;
     distanceDisplay.textContent = `${distance} м`;
@@ -63,11 +63,15 @@ function updateArrow() {
 
 function requestOrientationAccess() {
     if (typeof DeviceOrientationEvent.requestPermission === "function") {
-        DeviceOrientationEvent.requestPermission().then(response => {
-            if (response === "granted") {
-                window.addEventListener("deviceorientation", handleOrientation, true);
-            }
-        }).catch(console.error);
+        DeviceOrientationEvent.requestPermission()
+            .then(response => {
+                if (response === "granted") {
+                    window.addEventListener("deviceorientation", handleOrientation, true);
+                }
+            }).catch(err => {
+            alert("Ошибка при запросе доступа к компасу");
+            console.error(err);
+        });
     } else {
         window.addEventListener("deviceorientation", handleOrientation, true);
     }
@@ -91,7 +95,7 @@ function startTracking() {
             };
             updateArrow();
         });
-    }, 10); // обновляем каждую 0.01 секунды
+    }, 10); // обновляем каждые 0.01 секунды
 }
 
 button.addEventListener("click", () => {
