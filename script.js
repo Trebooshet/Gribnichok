@@ -20,7 +20,7 @@ function toDegrees(rad) {
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371000; // Радиус Земли в метрах
+    const R = 6371000;
     const dLat = toRadians(lat2 - lat1);
     const dLon = toRadians(lon2 - lon1);
     const a = Math.sin(dLat / 2) ** 2 +
@@ -55,34 +55,43 @@ function updateArrow() {
         targetCoords.longitude
     );
 
-    const rotation = bearing - currentHeading; // Разница между азимутом цели и направлением устройства
+    // Учитываем текущую ориентацию устройства
+    const rotation = bearing - currentHeading;
     arrow.style.transform = `rotate(${rotation}deg)`;
     distanceDisplay.textContent = `${distance} м`;
 }
 
+function requestOrientationAccess() {
+    if (typeof DeviceOrientationEvent.requestPermission === "function") {
+        DeviceOrientationEvent.requestPermission().then(response => {
+            if (response === "granted") {
+                window.addEventListener("deviceorientation", handleOrientation, true);
+            }
+        }).catch(console.error);
+    } else {
+        window.addEventListener("deviceorientation", handleOrientation, true);
+    }
+}
+
 function handleOrientation(event) {
     if (event.webkitCompassHeading !== undefined) {
-        currentHeading = event.webkitCompassHeading; // Для Safari
+        currentHeading = event.webkitCompassHeading; // Safari
     } else if (event.alpha !== null) {
-        currentHeading = 360 - event.alpha; // Для остальных устройств
+        currentHeading = 360 - event.alpha; // fallback
     }
-    updateArrow(); // Обновляем стрелку при каждом изменении ориентации
+    updateArrow();
 }
 
 function startTracking() {
-    navigator.geolocation.watchPosition(pos => {
-        currentCoords = {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude
-        };
-        updateArrow(); // Обновляем стрелку при изменении координат
-    }, err => {
-        console.error("Геолокация не работает:", err);
-    }, {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 10000
-    });
+    setInterval(() => {
+        navigator.geolocation.getCurrentPosition(pos => {
+            currentCoords = {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude
+            };
+            updateArrow();
+        });
+    }, 10); // обновляем каждую 0.01 секунды
 }
 
 button.addEventListener("click", () => {
@@ -96,10 +105,8 @@ button.addEventListener("click", () => {
         arrow.style.display = "flex";
         distanceDisplay.style.display = "block";
 
-        // Теперь без запроса разрешения
-        window.addEventListener("deviceorientation", handleOrientation, true);
-
-        startTracking(); // Начинаем отслеживание местоположения
+        requestOrientationAccess();
+        startTracking();
     }, err => {
         alert("Не удалось получить текущие координаты.");
         console.error(err);
