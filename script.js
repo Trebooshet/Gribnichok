@@ -35,7 +35,8 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
     const y = Math.sin(dLon) * Math.cos(toRadians(lat2));
     const x = Math.cos(toRadians(lat1)) * Math.sin(toRadians(lat2)) -
         Math.sin(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.cos(dLon);
-    return (toDegrees(Math.atan2(y, x)) + 360) % 360; // Направление в градусах
+    let bearing = toDegrees(Math.atan2(y, x));
+    return (bearing + 360) % 360; // Направление в градусах
 }
 
 function updateArrow() {
@@ -55,7 +56,14 @@ function updateArrow() {
         targetCoords.longitude
     );
 
-    const rotation = bearing - currentHeading;
+    // Обработка перехода через 360 градусов
+    let rotation = bearing - currentHeading;
+    if (rotation < -180) {
+        rotation += 360;
+    } else if (rotation > 180) {
+        rotation -= 360;
+    }
+
     arrow.style.transform = `rotate(${rotation}deg)`;
     distanceDisplay.textContent = `${distance} м`;
 }
