@@ -9,7 +9,7 @@ const distanceDisplay = document.getElementById("distanceDisplay");
 arrow.style.display = "none";
 distanceDisplay.style.display = "none";
 
-// Вспомогательные
+// Вспомогательные функции
 function toRadians(deg) {
     return deg * Math.PI / 180;
 }
@@ -37,6 +37,10 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
     return (toDegrees(Math.atan2(y, x)) + 360) % 360;
 }
 
+function normalizeAngle(angle) {
+    return (angle + 360) % 360;
+}
+
 function updateArrow() {
     if (!targetCoords || !currentCoords) return;
 
@@ -54,41 +58,44 @@ function updateArrow() {
         targetCoords.longitude
     );
 
-    // Разница между направлением на цель и текущим курсом
-    let rotation = (bearing - currentHeading + 360) % 360;
+    // Чтобы стрелка всегда смотрела верхом на цель:
+    const rotation = normalizeAngle(bearing - currentHeading);
 
     arrow.style.transform = `rotate(${rotation}deg)`;
     distanceDisplay.textContent = `${distance} м`;
 }
 
+function handleOrientation(event) {
+    if (event.absolute === true || typeof event.webkitCompassHeading !== "undefined") {
+        if (event.webkitCompassHeading !== undefined) {
+            currentHeading = event.webkitCompassHeading; // Safari
+        } else if (event.alpha !== null) {
+            currentHeading = 360 - event.alpha; // Android/Chrome fallback
+        }
+        updateArrow();
+    }
+}
+
 function requestOrientationAccess() {
-    if (typeof DeviceOrientationEvent?.requestPermission === "function") {
+    if (typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function") {
+        // iOS 13+
         DeviceOrientationEvent.requestPermission()
             .then(response => {
                 if (response === "granted") {
-                    window.addEventListener("deviceorientationabsolute", handleOrientation, true);
                     window.addEventListener("deviceorientation", handleOrientation, true);
                 } else {
                     alert("Разрешение на компас не получено.");
                 }
             })
             .catch(err => {
-                alert("Ошибка запроса доступа к компасу.");
+                alert("Ошибка при запросе доступа к компасу.");
                 console.error(err);
             });
     } else {
-        window.addEventListener("deviceorientationabsolute", handleOrientation, true);
+        // Android и старые Safari
         window.addEventListener("deviceorientation", handleOrientation, true);
     }
-}
-
-function handleOrientation(event) {
-    if (event.webkitCompassHeading !== undefined) {
-        currentHeading = event.webkitCompassHeading;
-    } else if (event.alpha !== null) {
-        currentHeading = 360 - event.alpha;
-    }
-    updateArrow();
 }
 
 function startTracking() {
@@ -99,15 +106,14 @@ function startTracking() {
         };
         updateArrow();
     }, err => {
-        console.error("Геолокация не работает:", err);
+        console.error("Ошибка геолокации:", err);
     }, {
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 10000
+        timeout: 5000
     });
 }
 
-// Кнопка "Поставить цель"
 button.addEventListener("click", () => {
     navigator.geolocation.getCurrentPosition(pos => {
         targetCoords = {
@@ -121,6 +127,9 @@ button.addEventListener("click", () => {
 
         requestOrientationAccess();
         startTracking();
+
+        // Постоянное обновление каждые 100 мс
+        setInterval(updateArrow, 100);
     }, err => {
         alert("Не удалось получить текущие координаты.");
         console.error(err);
